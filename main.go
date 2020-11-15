@@ -15,11 +15,17 @@ import (
 const (
 	newCityMicrocreameryHostname = "newcitymicrocreamery.com"
 	headerMessage                = `**Here are today's New City flavors :icecream:**`
-	footerMessage                = `(e) contains egg     (g) contains gluten    (s) contains soy     (a) contains alcohol     (n) contains nuts`
 )
 
 var (
 	newCityCambridgeMenuAddress = fmt.Sprintf("https://%s/cambridge-menu", newCityMicrocreameryHostname)
+	detailsEmojiMap             = map[string]string{
+		"E": ":egg:",
+		"G": ":ear_of_rice:", // okay rice is generally gluten-free but this gets the idea across
+		"S": ":seedling:",    // this one is also a stretch – it looks kind of like a soy bean?
+		"A": ":tumbler_glass:",
+		"N": ":peanuts:",
+	}
 
 	botTokenFlag  = flag.String("token", "", "Bot token for the Discord API")
 	channelIDFlag = flag.Int64("channel_id", 0, "Channel ID the bot should post to")
@@ -30,7 +36,7 @@ var (
 type iceCream struct {
 	Name        string
 	Description string
-	Details     []string
+	RawDetails  []string
 }
 
 type iceCreams map[string][]iceCream
@@ -118,7 +124,7 @@ func NewIceCreams() (iceCreams, error) {
 			details := item.ChildText("span.menu-item-price-top")
 			if details != "" {
 				details = strings.Trim(details, "()")
-				iceCream.Details = strings.Split(details, ",")
+				iceCream.RawDetails = strings.Split(details, ",")
 			}
 
 			iceCreamsInCategory = append(iceCreamsInCategory, iceCream)
@@ -148,16 +154,30 @@ func (c iceCreams) Messages() []string {
 
 	for category, creams := range c {
 		s := strings.Builder{}
-		s.WriteString(fmt.Sprintf("**%s**\n\n", category))
+		if len(c) > 1 {
+			s.WriteString(fmt.Sprintf("**%s**\n", category))
+		}
 		for _, cream := range creams {
-			s.WriteString(fmt.Sprintf("- %s: *%s* (%s)\n", cream.Name, cream.Description, strings.Join(cream.Details, ",")))
+			s.WriteString(fmt.Sprintf("• %s: *%s* %s\n", cream.Name, cream.Description, cream.Details()))
 		}
 		messages = append(messages, s.String())
 	}
 
-	if len(messages) > 1 {
-		messages = append(messages, footerMessage)
+	return messages
+}
+
+func (c iceCream) Details() string {
+	if len(c.RawDetails) == 0 {
+		return ""
 	}
 
-	return messages
+	e := make([]string, len(c.RawDetails))
+	for i, d := range c.RawDetails {
+		if emoji, ok := detailsEmojiMap[strings.ToUpper(d)]; ok {
+			e[i] = emoji
+		} else {
+			e[i] = d
+		}
+	}
+	return fmt.Sprintf("(%s)", strings.Join(e, ", "))
 }
