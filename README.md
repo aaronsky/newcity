@@ -1,0 +1,1 @@
+This is a webscraper for New City Microcreamery in Cambridge, MA. It was developed so that me and my friends could be notified what special ice cream is available each day. It runs in GitHub Actions once a day and notifies our private Discord server via the API.
