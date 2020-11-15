@@ -27,6 +27,7 @@ vendor/
 *.p8
 .vscode/
 *.prettierrc*
+.secrets
 
 # System files
 Thumbs.db

@@ -1,0 +1,20 @@
+name: daily
+on:
+  schedule:
+    - cron: '0 12 * * *'
+
+jobs:
+  doit:
+    name: 'do it'
+    runs-on: ubuntu-latest
+    env:
+      BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+      CHANNEL_ID: 777363083907563531
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v1
+        with:
+          go-version: 1.15.x
+      - name: Run
+        run: |
+          go run . -channel_id $CHANNEL_ID -only_new
