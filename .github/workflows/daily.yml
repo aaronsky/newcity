@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-      CHANNEL_ID: 777363083907563531
+      CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v1

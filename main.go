@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -13,10 +15,12 @@ import (
 )
 
 const (
-	newCityMicrocreameryHostname = "newcitymicrocreamery.com"
-	headerMessage                = `**Here are today's New City flavors :icecream:**`
+	newCityMicrocreameryHostname     = "newcitymicrocreamery.com"
+	newCityOriginalsSectionTitleText = "New City Originals"
+	headerMessage                    = `**Here are today's New City flavors :icecream:**`
 )
 
+// nolint: gochecknoglobals
 var (
 	newCityCambridgeMenuAddress = fmt.Sprintf("https://%s/cambridge-menu", newCityMicrocreameryHostname)
 	detailsEmojiMap             = map[string]string{
@@ -33,13 +37,21 @@ var (
 	dryRunFlag    = flag.Bool("dry_run", false, "Dry-run")
 )
 
+var (
+	// ErrNoDiscordBotToken happens when a token is not provided via the -bot_token flag or the BOT_TOKEN environment variable.
+	ErrNoDiscordBotToken = errors.New("no Discord bot token provided")
+	// ErrNoDiscordChannelID happens when a channel ID is not provided via the -channel_id flag, or it is not a valid int64.
+	ErrNoDiscordChannelID = errors.New("no Discord channel ID provided")
+)
+
 type iceCream struct {
 	Name        string
 	Description string
 	RawDetails  []string
 }
 
-type iceCreams map[string][]iceCream
+// IceCreams is a map of New City section titles to flavor lists.
+type IceCreams map[string][]iceCream
 
 func main() {
 	flag.Parse()
@@ -59,49 +71,23 @@ func main() {
 		for _, message := range messages {
 			fmt.Println(message)
 		}
+
 		return
 	}
 
-	token := *botTokenFlag
-	if token == "" {
-		token = os.Getenv("BOT_TOKEN")
-		if token == "" {
-			log.Fatal("no Discord bot token provided")
-		}
-	}
-
-	channelID := *channelIDFlag
-	if channelID == 0 {
-		log.Fatal("no Discord channel ID provided")
-	}
-
-	s, err := session.New("Bot " + token)
-	if err != nil {
+	// If not in dry-run mode, post to Discord
+	if err := PostToDiscord(messages...); err != nil {
 		log.Fatal(err)
-	}
-
-	// get channel to send to
-	if err := s.Open(); err != nil {
-		log.Fatalln("Failed to connect:", err)
-	}
-	defer s.Close()
-
-	// create message
-	for _, message := range messages {
-		m, err := s.SendText(discord.ChannelID(channelID), message)
-		if err != nil {
-			log.Fatal(err)
-		}
-		fmt.Println("SENT:", m.ID)
 	}
 }
 
-func NewIceCreams() (iceCreams, error) {
+// NewIceCreams creates a new iceCreams instance using data scraped from the New City website.
+func NewIceCreams() (IceCreams, error) {
 	c := colly.NewCollector(
 		colly.AllowedDomains(newCityMicrocreameryHostname),
 	)
 
-	iceCreams := iceCreams{}
+	iceCreams := IceCreams{}
 	onlyNew := *onlyNewFlag
 
 	c.OnRequest(func(r *colly.Request) {
@@ -110,7 +96,7 @@ func NewIceCreams() (iceCreams, error) {
 
 	c.OnHTML(".menu-section", func(section *colly.HTMLElement) {
 		category := section.ChildText(".menu-section-title")
-		if onlyNew && category != "New City Originals" {
+		if onlyNew && category != newCityOriginalsSectionTitleText {
 			return
 		}
 
@@ -147,19 +133,63 @@ func NewIceCreams() (iceCreams, error) {
 	return iceCreams, nil
 }
 
-func (c iceCreams) Messages() []string {
+// PostToDiscord posts the given messages to Discord.
+func PostToDiscord(messages ...string) error {
+	token := *botTokenFlag
+	if token == "" {
+		token = os.Getenv("BOT_TOKEN")
+		if token == "" {
+			return ErrNoDiscordBotToken
+		}
+	}
+
+	channelID := *channelIDFlag
+	if channelID == 0 {
+		return ErrNoDiscordChannelID
+	}
+
+	s, err := session.New("Bot " + token)
+	if err != nil {
+		return err
+	}
+
+	// get channel to send to
+	if err := s.Open(); err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+
+	defer Close(s)
+
+	// create message
+	for _, message := range messages {
+		m, err := s.SendText(discord.ChannelID(channelID), message)
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("SENT:", m.ID)
+	}
+
+	return nil
+}
+
+// Messages splits an IceCreams instance into a list of messages.
+func (c IceCreams) Messages() []string {
 	messages := []string{}
 
 	messages = append(messages, headerMessage)
 
 	for category, creams := range c {
 		s := strings.Builder{}
+
 		if len(c) > 1 {
 			s.WriteString(fmt.Sprintf("**%s**\n", category))
 		}
+
 		for _, cream := range creams {
 			s.WriteString(fmt.Sprintf("• %s: *%s* %s\n", cream.Name, cream.Description, cream.Details()))
 		}
+
 		messages = append(messages, s.String())
 	}
 
@@ -172,6 +202,7 @@ func (c iceCream) Details() string {
 	}
 
 	e := make([]string, len(c.RawDetails))
+
 	for i, d := range c.RawDetails {
 		if emoji, ok := detailsEmojiMap[strings.ToUpper(d)]; ok {
 			e[i] = emoji
@@ -179,5 +210,14 @@ func (c iceCream) Details() string {
 			e[i] = d
 		}
 	}
+
 	return fmt.Sprintf("(%s)", strings.Join(e, ", "))
+}
+
+// Close closes an io.Closer and handles the possible Close error.
+func Close(c io.Closer) {
+	err := c.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
