@@ -41,3 +41,6 @@ docs/tmp
 
 # GoReleaser
 dist/
+
+# newcity
+newcity.json
