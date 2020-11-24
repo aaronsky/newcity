@@ -23,4 +23,5 @@ jobs:
           key: flavors-${{ runner.os }}
       - name: Run
         run: |
+          stat newcity.json
           go run . -channel_id=$CHANNEL_ID -only_originals -cache
