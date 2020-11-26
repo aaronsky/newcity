@@ -366,7 +366,7 @@ func writeCategorySubtitle(s io.StringWriter, creams []IceCream, category string
 	}
 
 	if len(creams) > 0 {
-		if _, err := s.WriteString("Flavors added since the last run:\n"); err != nil {
+		if _, err := s.WriteString(fmt.Sprintf("Flavors %s since the last run:\n", diffSide)); err != nil {
 			log.Println(err)
 		}
 
