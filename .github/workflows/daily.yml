@@ -27,4 +27,8 @@ jobs:
           key: flavors-${{ runner.os }}-${{ steps.parse_date.outputs.week }}
       - name: Run
         run: |-
-          go run . -channel_id=$CHANNEL_ID -only_originals -cache
+          go run . -dry_run -channel_id=$CHANNEL_ID -only_originals -cache
+      - uses: actions/upload-artifact@v2
+        with:
+          name: flavors-${{ steps.parse_date.outputs.week }}
+          path: newcity.json

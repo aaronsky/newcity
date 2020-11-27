@@ -76,6 +76,8 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		log.Println("Discovered valid cache")
 	}
 
 	// fetch ice creams
