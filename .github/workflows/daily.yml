@@ -16,7 +16,15 @@ jobs:
       - uses: actions/setup-go@v1
         with:
           go-version: 1.15.x
-      - uses: ./.github/actions/cache
+      - name: Parse current date
+        id: parse_date
+        run: |-
+          echo "::set-output name=week::$(/bin/date -u "+%V")"
+      - uses: actions/cache@v2
+        id: cache_flavors
+        with:
+          path: newcity.json
+          key: flavors-${{ steps.parse_date.outputs.week }}
       - name: Run
         run: |-
           go run . -channel_id=$CHANNEL_ID -only_originals -cache -dry_run
