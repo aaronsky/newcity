@@ -24,7 +24,10 @@ jobs:
         id: cache_flavors
         with:
           path: newcity.json
-          key: flavors-${{ steps.parse_date.outputs.week }}
+          key: flavors-${{ steps.parse_date.outputs.week }}-${{ hashFiles('newcity.json') }}
+          restore-keys: |-
+            flavors-${{ steps.parse_date.outputs.week }}-
+            flavors
       - name: Run
         run: |-
-          go run . -channel_id=$CHANNEL_ID -only_originals -cache
+          go run . -channel_id=$CHANNEL_ID -only_originals -cache -dry_run
