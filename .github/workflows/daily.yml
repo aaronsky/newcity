@@ -16,15 +16,27 @@ jobs:
       - uses: actions/setup-go@v1
         with:
           go-version: 1.15.x
-      - name: Parse current date
-        id: parse_date
+      - name: Parse dates
+        id: parse_dates
         run: |-
-          echo "::set-output name=week::$(/bin/date -u "+%V")"
+          echo "::set-output name=today_week::$(/bin/date -u "+%V")"
+          echo "::set-output name=today_day::$(/bin/date -u "+%u")"
+          echo "::set-output name=yesterday_week::$(/bin/date --date="yesterday" -u "+%V")"
+          echo "::set-output name=yesterday_day::$(/bin/date --date="yesterday" -u "+%u")"
       - uses: actions/cache@v2
-        id: cache_flavors
+        id: get_yesterday_flavors
         with:
           path: newcity.json
-          key: flavors-${{ steps.parse_date.outputs.week }}
+          key: flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }}
+      - uses: actions/cache@v2
+        id: cache_today_flavors
+        with:
+          path: newcity.json
+          key: flavors-${{ steps.parse_dates.outputs.today_week }}-${{ steps.parse_dates.outputs.today_day }}
       - name: Run
         run: |-
-          go run . -channel_id=$CHANNEL_ID -only_originals -cache -dry_run
+          if [ "${{ steps.parse_dates.outputs.today_week }}" == "${{ steps.parse_dates.outputs.yesterday_week }}" ]; then
+            go run . -channel_id=$CHANNEL_ID -only_originals -cache -dry_run
+          else
+            go run . -channel_id=$CHANNEL_ID -only_originals -dry_run
+          fi
