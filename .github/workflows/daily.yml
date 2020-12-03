@@ -38,7 +38,7 @@ jobs:
       - name: Run
         run: |-
           if [ "${{ steps.parse_dates.outputs.today_week }}" == "${{ steps.parse_dates.outputs.yesterday_week }}" ]; then
-            go run . -channel_id=$CHANNEL_ID -only_originals -cache -dry_run
+            go run . -channel_id=$CHANNEL_ID -only_originals -cache
           else
-            go run . -channel_id=$CHANNEL_ID -only_originals -dry_run
+            go run . -channel_id=$CHANNEL_ID -only_originals
           fi
