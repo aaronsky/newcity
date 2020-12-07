@@ -39,7 +39,8 @@ var (
 	onlyOriginalsFlag         = flag.Bool("only_originals", false, "Filter only New City Originals ice cream flavors")
 	useCacheFlag              = flag.Bool("cache", false, "Use cache to determine changed flavors")
 	outputUnchangedResultFlag = flag.Bool("print_unchanged", false, "Will output even if the flavors have not changed (does nothing if -cache is not set)")
-	cachePathFlag             = flag.String("cache_path", "newcity.json", "Path to write cache to (does nothing if -cache is not set)")
+	readCachePathFlag         = flag.String("read_cache_path", "newcity.json", "Path to read cache from (does nothing if -cache is not set)")
+	writeCachePathFlag        = flag.String("write_cache_path", "newcity.json", "Path to write cache to (does nothing if -cache is not set)")
 	dryRunFlag                = flag.Bool("dry_run", false, "Dry-run")
 )
 
@@ -64,7 +65,6 @@ func main() {
 	flag.Parse()
 
 	useCache := *useCacheFlag
-	cachePath := *cachePathFlag
 
 	var (
 		cachedIceCreams IceCreams
@@ -72,7 +72,9 @@ func main() {
 	)
 
 	if useCache {
-		cachedIceCreams, err = NewIceCreamsFromFile(cachePath)
+		readCachePath := *readCachePathFlag
+
+		cachedIceCreams, err = NewIceCreamsFromFile(readCachePath)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -99,7 +101,8 @@ func main() {
 	}
 
 	if useCache {
-		if err := iceCreams.Write(cachePath); err != nil {
+		writeCachePath := *writeCachePathFlag
+		if err := iceCreams.Write(writeCachePath); err != nil {
 			log.Fatal(err)
 		}
 	}

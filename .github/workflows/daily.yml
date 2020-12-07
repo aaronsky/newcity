@@ -23,22 +23,22 @@ jobs:
           echo "::set-output name=today_day::$(/bin/date -u "+%u")"
           echo "::set-output name=yesterday_week::$(/bin/date --date="yesterday" -u "+%V")"
           echo "::set-output name=yesterday_day::$(/bin/date --date="yesterday" -u "+%u")"
-      - name: Handle today's cache file
-        uses: actions/cache@v2
-        id: cache_today_flavors
-        with:
-          path: newcity.json
-          key: flavors-${{ steps.parse_dates.outputs.today_week }}-${{ steps.parse_dates.outputs.today_day }}
       - name: Handle yesterday's cache file
         uses: actions/cache@v2
         id: get_yesterday_flavors
         with:
-          path: newcity.json
+          path: newcity-yesterday.json
           key: flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }}
+      - name: Handle today's cache file
+        uses: actions/cache@v2
+        id: cache_today_flavors
+        with:
+          path: newcity-today.json
+          key: flavors-${{ steps.parse_dates.outputs.today_week }}-${{ steps.parse_dates.outputs.today_day }}
       - name: Run
         run: |-
           if [ "${{ steps.parse_dates.outputs.today_week }}" == "${{ steps.parse_dates.outputs.yesterday_week }}" ]; then
-            go run . -channel_id=$CHANNEL_ID -only_originals -cache
+            go run . -channel_id=$CHANNEL_ID -only_originals -cache -read_cache_path=newcity-yesterday.json -write_cache_path=newcity-today.json
           else
-            go run . -channel_id=$CHANNEL_ID -only_originals
+            go run . -channel_id=$CHANNEL_ID -only_originals -write_cache_path=newcity-today.json
           fi
