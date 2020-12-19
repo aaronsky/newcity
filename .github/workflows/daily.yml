@@ -18,27 +18,29 @@ jobs:
           go-version: 1.15.x
       - name: Parse dates
         id: parse_dates
-        run: |-
+        run: |
           echo "::set-output name=today_week::$(/bin/date -u "+%V")"
           echo "::set-output name=today_day::$(/bin/date -u "+%u")"
           echo "::set-output name=yesterday_week::$(/bin/date --date="yesterday" -u "+%V")"
           echo "::set-output name=yesterday_day::$(/bin/date --date="yesterday" -u "+%u")"
-      - name: Handle yesterday's cache file
-        uses: actions/cache@v2
-        id: get_yesterday_flavors
+      # - name: Extract Cache
+      #   id: extract_cache
+      #   if: ${{ steps.parse_dates.outputs.today_week }} == ${{ steps.parse_dates.outputs.yesterday_week }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     go run ./cmd/extract_cache \
+      #       -key=flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }} \
+      #       -path=newcity.json
+      - name: New City
+        id: newcity
+        run: |
+          go run ./cmd/newcity \
+            -channel_id=$CHANNEL_ID \
+            -only_originals \
+            -cache
+      - uses: actions/upload-artifact@v2
         with:
-          path: newcity-yesterday.json
-          key: flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }}
-      - name: Handle today's cache file
-        uses: actions/cache@v2
-        id: cache_today_flavors
-        with:
-          path: newcity-today.json
-          key: flavors-${{ steps.parse_dates.outputs.today_week }}-${{ steps.parse_dates.outputs.today_day }}
-      - name: Run
-        run: |-
-          if [ "${{ steps.parse_dates.outputs.today_week }}" == "${{ steps.parse_dates.outputs.yesterday_week }}" ]; then
-            go run . -channel_id=$CHANNEL_ID -only_originals -cache -read_cache_path=newcity-yesterday.json -write_cache_path=newcity-today.json
-          else
-            go run . -channel_id=$CHANNEL_ID -only_originals -write_cache_path=newcity-today.json
-          fi
+          name: flavors-${{ steps.parse_dates.outputs.today_week }}-${{ steps.parse_dates.outputs.today_day }}
+          path: |
+            newcity.json
