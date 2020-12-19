@@ -30,8 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           go run ./cmd/extract_cache \
-            -key=flavors-${{ steps.parse_dates.outputs.today_week }}-${{ steps.parse_dates.outputs.today_day }}
-# -key=flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }}
+            -key=flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }}
       - name: New City
         id: newcity
         run: |
