@@ -10,16 +10,16 @@ import (
 
 var (
 	errNoKey   = errors.New("no key provided using the -key flag")
-	errNoPath  = errors.New("no path provided using the -path flag")
 	errNoToken = errors.New("no value provided for the GITHUB_TOKEN environment variable")
 )
 
 // nolint: gochecknoglobals
 var (
 	key         = flag.String("key", "", "Cache key to inspect")
-	path        = flag.String("path", "", "Path to write cached file to")
+	path        = flag.String("path", "newcity.json", "File to extract from cache into current directory")
 	owner       = flag.String("owner", "aaronsky", "Github user or org name that repo belongs to")
 	repo        = flag.String("repo", "newcity", "Repository name to check for artifacts")
+	strict      = flag.Bool("strict", false, "Fail if an artifact is not found")
 	githubToken = os.Getenv("GITHUB_TOKEN")
 )
 
@@ -30,26 +30,33 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var strictLog func(...interface{})
+	if *strict {
+		strictLog = log.Fatal
+	} else {
+		strictLog = func(v ...interface{}) {
+			log.Println(v...)
+			os.Exit(0)
+		}
+	}
+
 	ctx := context.Background()
 	client := NewGithub(ctx, githubToken)
 
 	artifact, err := client.ArtifactMatching(ctx, *owner, *repo, *key)
 	if err != nil {
-		log.Fatal(err)
+		strictLog(err)
 	}
 
-	if err = client.WriteArtifactToPath(ctx, *owner, *repo, artifact, *path); err != nil {
-		log.Fatal(err)
+	err = client.WriteArtifactsWithName(ctx, *owner, *repo, artifact, *path)
+	if err != nil {
+		strictLog(err)
 	}
 }
 
 func validateInputs() error {
 	if *key == "" {
 		return errNoKey
-	}
-
-	if *path == "" {
-		return errNoPath
 	}
 
 	if githubToken == "" {

@@ -23,15 +23,14 @@ jobs:
           echo "::set-output name=today_day::$(/bin/date -u "+%u")"
           echo "::set-output name=yesterday_week::$(/bin/date --date="yesterday" -u "+%V")"
           echo "::set-output name=yesterday_day::$(/bin/date --date="yesterday" -u "+%u")"
-      # - name: Extract Cache
-      #   id: extract_cache
-      #   if: ${{ steps.parse_dates.outputs.today_week }} == ${{ steps.parse_dates.outputs.yesterday_week }}
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     go run ./cmd/extract_cache \
-      #       -key=flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }} \
-      #       -path=newcity.json
+      - name: Extract Cache
+        id: extract_cache
+        if: ${{ steps.parse_dates.outputs.today_week }} == ${{ steps.parse_dates.outputs.yesterday_week }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          go run ./cmd/extract_cache \
+            -key=flavors-${{ steps.parse_dates.outputs.yesterday_week }}-${{ steps.parse_dates.outputs.yesterday_day }}
       - name: New City
         id: newcity
         run: |
